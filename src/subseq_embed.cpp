@@ -215,13 +215,18 @@ void compute_embeddings(const std::string& subseq_file,
 
     int num_subs = subs.size();
     int* embed = new int[num_subs];
+    std::string ext_name = "D" + std::to_string(num_subs) +
+	".l" + std::to_string(subs.num_tokens) +
+	".t" + std::to_string(subs.token_len) +
+	".rssebd";
     
     for(const std::string& file : input_files)
     {
 	std::cout << "Embedding sequence(s) in file: " << file << std::endl;
 	
 	fasta_reader fin(file);
-	std::string out_file = change_file_ext(file, "rssebd");
+	
+	std::string out_file = change_file_ext(file, ext_name);
 	std::ofstream fout(out_file, std::ios::binary);
 	if(!fout)
 	{
