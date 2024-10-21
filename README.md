@@ -13,7 +13,7 @@ mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j
 ```
-This should create an executable `SubseqEmbed` in within the `build/` directory.
+This should create an executable `SubseqEmbed` within the `build/` directory.
 
 # Usage
 Check the usage information of SubseqEmbed and its subcommands:
