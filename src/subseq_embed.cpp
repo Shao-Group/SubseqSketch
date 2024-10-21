@@ -254,7 +254,7 @@ void compute_embeddings(const std::string& subseq_file,
 	{
 	    tokenized_sequence s_index(fin.next(), subs.token_len);
 
-	    #pragma omp parallel for
+#pragma omp parallel for default(shared)
 	    for(int i = 0; i < num_subs; ++i)
 	    {
 		embed[i] = s_index.longest_subsequence(subs.seqs[i]);
