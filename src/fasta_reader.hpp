@@ -10,6 +10,7 @@
 #include <fstream>
 #include <string>
 #include <limits>
+#include <iostream>
 #include <cassert>
  
 constexpr auto MAX_SIZE = std::numeric_limits<std::streamsize>::max();

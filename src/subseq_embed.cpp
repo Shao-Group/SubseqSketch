@@ -7,11 +7,15 @@
 #include <iostream>
 #include <string>
 #include <vector>
+
 #include "fasta_reader.hpp"
 #include "subsequences.hpp"
 #include "tokenized_sequence.hpp"
 #include "rssebd_array.hpp"
 #include "CLI11.hpp"
+
+#include <omp.h>
+
 
 void gen_random_subsequences(const int subseq_len,
 			     const int token_len,
@@ -85,12 +89,12 @@ int main(int argc, char** argv)
     CLI::App* dist = app.add_subcommand("dist", "Compute pairwise embedding distances between two embedding files");
 
     std::string embed_file1;
-    dist->add_option("-a,--input1", embed_file1, "First file of embeddings")
+    dist->add_option("-a,--input1,embed_file1", embed_file1, "First file of embeddings")
 	->required()
 	->check(CLI::ExistingFile);
 
     std::string embed_file2;
-    dist->add_option("-b,--input2", embed_file2, "Second file of embeddings")
+    dist->add_option("-b,--input2,embed_file2", embed_file2, "Second file of embeddings")
 	->required()
 	->check(CLI::ExistingFile);
 
@@ -163,8 +167,10 @@ void gen_random_subsequences(const int subseq_len,
     {
 	std::cout << " " << s;
     }
-    std::cout << std::endl << "subseq_file: " << subseq_file << std::endl;
+    std::cout << std::endl << "subseq_file: " << subseq_file
+	      << std::endl << std::endl;
 
+    std::cout << "Generating subsequences..." << std::endl;
     subsequences seqs(subseq_len, token_len);
     if(input_files.size() > 0)
     {
@@ -175,12 +181,18 @@ void gen_random_subsequences(const int subseq_len,
 	std::ifstream fin(alphabet_file);
 	if(!fin)
 	{
-	    throw std::runtime_error("Could not open the file: " + alphabet_file);
+	    // throw std::runtime_error("Could not open the file: " + alphabet_file);
+	    std::cerr << "Error: could not open the file: "
+		      << alphabet_file << std::endl;
+	    std::exit(1);
 	}
 	std::string alphabet;
 	if(!std::getline(fin, alphabet) || alphabet.empty())
 	{
-	    throw std::runtime_error("Could not read alphabet from: " + alphabet_file);
+	    // throw std::runtime_error("Could not read alphabet from: " + alphabet_file);
+	    std::cerr << "Error: could not read alphabet from: "
+		      << alphabet_file << std::endl;
+	    std::exit(1);
 	}
 	else
 	{
@@ -206,7 +218,8 @@ void compute_embeddings(const std::string& subseq_file,
     {
 	std::cout << " " << s;
     }
-    std::cout << std::endl << "subseq_file: " << subseq_file << std::endl;
+    std::cout << std::endl << "subseq_file: " << subseq_file
+	      << std::endl << std::endl;
 
     subsequences subs(subseq_file);
     std::cout << "Loaded " << subs.size() << " subsequence(s), num_tokens: "
@@ -230,14 +243,18 @@ void compute_embeddings(const std::string& subseq_file,
 	std::ofstream fout(out_file, std::ios::binary);
 	if(!fout)
 	{
-	    throw std::runtime_error("Could not write to file: " + out_file);
+	    // throw std::runtime_error("Could not write to file: " + out_file);
+	    std::cerr << "Error: could not write to file: "
+		      << out_file << std::endl;
+	    std::exit(1);
 	}
 	
 	int ct = 0;
 	while(!fin.eof())
 	{
 	    tokenized_sequence s_index(fin.next(), subs.token_len);
-	    
+
+	    #pragma omp parallel for
 	    for(int i = 0; i < num_subs; ++i)
 	    {
 		embed[i] = s_index.longest_subsequence(subs.seqs[i]);
@@ -261,7 +278,45 @@ void compute_distances(const std::string& embed_file1,
 {
     std::cout << "embed_file1: " << embed_file1 << std::endl;
     std::cout << "embed_file2: " << embed_file2 << std::endl;
-    std::cout << "dist_file: " << dist_file << std::endl;
+    std::cout << "dist_file: " << dist_file << std::endl << std::endl;
+
+    std::cout << "Loading embeddings from the file: " << embed_file1 << std::endl;
+    std::vector<int*> embeds1;
+    int embed_dim1;
+    int num_tokens1;
+    rssebd_array::load(embeds1, embed_dim1, num_tokens1, embed_file1);
+    std::cout << "Loaded " << embeds1.size() << " embeddings from "
+	      << embed_file1 << ", dimension: " << embed_dim1 << std::endl;
+
+    std::cout << "Loading embeddings from the file: " << embed_file2 << std::endl;
+    std::vector<int*> embeds2;
+    int embed_dim2;
+    int num_tokens2;
+    rssebd_array::load(embeds2, embed_dim2, num_tokens2, embed_file2);
+    std::cout << "Loaded " << embeds2.size() << " embeddings from "
+	      << embed_file2 << ", dimension: " << embed_dim2 << std::endl;
+
+    if(embed_dim1 != embed_dim2)
+    {
+	std::cerr << "Error: embedding dimensions do not match." << std::endl;
+	std::exit(1);
+    }
+
+    if(num_tokens1 != num_tokens2)
+    {
+	std::cerr << "Warning: max possible values in the embeddings are not consistent, #1: "
+		  << num_tokens1 << ", #2: " << num_tokens2
+		  << ". The results may not be meaningful." << std::endl;
+    }
+
+    std::cout << "Computing pairwise embedding distances..." << std::endl;
+    rssebd_array::pairwise_cos_dist(embeds1, embeds2, embed_dim1, dist_file);
+    std::cout << embeds1.size() << "x" << embeds2.size()
+	      << " embedding distance matrix wrote to file: "
+	      << dist_file << std::endl;
+
+    rssebd_array::free(embeds1);
+    rssebd_array::free(embeds2);
 }
 
 
@@ -271,6 +326,7 @@ void show_embeddings(const std::string& embed_file)
     int embed_dim;
     int num_tokens;
 
+    std::cout << "Loading embeddings from the file: " << embed_file << std::endl;
     rssebd_array::load(embeds, embed_dim, num_tokens, embed_file);
 
     std::cout << "Embedding dimension: " << embed_dim << std::endl;

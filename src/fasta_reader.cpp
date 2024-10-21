@@ -12,13 +12,20 @@ fasta_reader::fasta_reader(const std::string& file)
 {
     if(!fin)
     {
-	throw std::runtime_error("Could not open the file: " + file);
+	// throw std::runtime_error("Could not open the file: " + file);
+	std::cerr << "Error: could not open the file: "
+		  << file << std::endl;
+	std::exit(1);
     }
 
     int header = fin.peek();
     if(header != '>')
     {
-	throw std::runtime_error(file + " does not appear to be a valid fasta file");
+	// throw std::runtime_error(file + " does not appear to be a valid fasta file");
+	std::cerr << "Error: " << file
+		  << " does not appear to be a valid fasta file"
+		  << std::endl;
+	std::exit(1);
     }
 }
 

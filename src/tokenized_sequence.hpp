@@ -19,7 +19,7 @@ public:
     // Return the maximum number of consecutive tokens (starting from the
     // leftmost one) in test that form a subsequence (of tokens) of this
     // underlying sequence.
-    int longest_subsequence(const std::string& test);
+    int longest_subsequence(const std::string& test) const;
 private:
     int token_len;
     // For each token appears in the underlying sequence, the indices of its
@@ -29,7 +29,7 @@ private:
     // Search if token appears in the underlying string starting from st_pos+1.
     // If found, return the beginning index of that occurrence, otherwise
     // return -1.
-    int64_t find(const std::string& token, int64_t st_pos);
+    int64_t find(const std::string& token, int64_t st_pos) const;
 };
 
 #endif

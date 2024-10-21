@@ -1,6 +1,6 @@
 /*
   Part of SubseqEmbed.
-  File IO for binary embedding files.
+  File IO for binary embedding files and distance computation.
   By Ke @ Penn State
 */
 
@@ -8,6 +8,7 @@
 #define __RSSEBD_ARRAY_H__
 
 #include <fstream>
+#include <iostream>
 #include <vector>
 
 class rssebd_array
@@ -21,6 +22,16 @@ public:
     // in the file have the same dimension.
     static void load(std::vector<int*>& embeds, int& embed_dim, int& num_tokens,
 		     const std::string& embed_file);
+
+    // Compute row_normalized(embed1) * column_normalized(transpose(embed2))
+    // and write the resulting matrix to dist_file.
+    static void pairwise_cos_dist(const std::vector<int*>& embed1,
+				  const std::vector<int*>& embed2,
+				  int embed_dim,
+				  const std::string& dist_file);
+
+    // Free each int array in embeds.
+    static void free(std::vector<int*>& embeds);
 };
 
 #endif

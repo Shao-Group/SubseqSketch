@@ -58,7 +58,10 @@ void subsequences::save_subsequences(const std::string& subseq_file)
     std::ofstream fout(subseq_file);
     if(!fout)
     {
-	throw std::runtime_error("Could not write to file: " + subseq_file);
+	// throw std::runtime_error("Could not write to the file: " + subseq_file);
+	std::cerr << "Error: could not write to the file: "
+		  << subseq_file << std::endl;
+	std::exit(1);
     }
 
     fout << seqs.size() << " " << num_tokens << " " << token_len << std::endl;
@@ -74,7 +77,10 @@ void subsequences::load_subsequences(const std::string& subseq_file)
     std::ifstream fin(subseq_file);
     if(!fin)
     {
-	throw std::runtime_error("Could not open file: " + subseq_file);
+	// throw std::runtime_error("Could not open the file: " + subseq_file);
+	std::cerr << "Error: could not open the file: "
+		  << subseq_file << std::endl;
+	std::exit(1);
     }
 
     int num_seqs;

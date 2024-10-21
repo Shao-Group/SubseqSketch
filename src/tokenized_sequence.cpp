@@ -18,7 +18,7 @@ tokenized_sequence::tokenized_sequence(const std::string& seq, int token_len)
     }
 }
 
-int tokenized_sequence::longest_subsequence(const std::string& test)
+int tokenized_sequence::longest_subsequence(const std::string& test) const
 {
     int result = 0;
     int64_t p = -1;
@@ -40,7 +40,7 @@ int tokenized_sequence::longest_subsequence(const std::string& test)
     return result;
 }
 
-int64_t tokenized_sequence::find(const std::string& token, int64_t st_pos)
+int64_t tokenized_sequence::find(const std::string& token, int64_t st_pos) const
 {
     auto it = index.find(token);
     if(it == index.end()) return -1;
