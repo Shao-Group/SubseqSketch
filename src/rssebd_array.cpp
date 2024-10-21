@@ -119,6 +119,8 @@ void rssebd_array::pairwise_cos_dist(const std::vector<int*>& embed1,
     Eigen::MatrixXd dist(s1, s2);
     dist.noalias() = m1 * m2;
     dist.array() = 1 - dist.array();
+    double zero_threshold = 1e-8;
+    dist = (dist.array() < zero_threshold).select(0.0f, dist);
     
     Eigen::IOFormat fmt(Eigen::StreamPrecision, Eigen::DontAlignCols, "\t", "\n");
 
