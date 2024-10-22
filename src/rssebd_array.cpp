@@ -6,7 +6,6 @@
 
 #include "rssebd_array.hpp"
 #include <string>
-#include <Eigen/Dense>
 
 void rssebd_array::write(const int* embed, int size, int max_val,
 			 std::ofstream& fout)
@@ -84,15 +83,6 @@ void rssebd_array::pairwise_cos_dist(const std::vector<int*>& embed1,
 				     int embed_dim,
 				     const std::string& dist_file)
 {
-    std::ofstream fout(dist_file);
-    if(!fout)
-    {
-	// throw std::runtime_error("Could not write to the file: " + dist_file);
-	std::cerr << "Error: could not write to the file: "
-		  << dist_file << std::endl;
-	std::exit(1);
-    }
-
     std::size_t s1 = embed1.size();
     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> m1(s1, embed_dim);
     for(int i = 0; i < s1; ++i)
@@ -121,11 +111,58 @@ void rssebd_array::pairwise_cos_dist(const std::vector<int*>& embed1,
     dist.array() = 1 - dist.array();
     double zero_threshold = 1e-8;
     dist = (dist.array() < zero_threshold).select(0.0f, dist);
+
+    save_dist_matrix(dist, dist_file);
+}
+
+
+void rssebd_array::save_dist_matrix(const Eigen::MatrixXd& dist,
+				    const std::string& dist_file)
+{
+    std::ofstream fout(dist_file, std::ios::binary);
+    if(!fout)
+    {
+	// throw std::runtime_error("Could not write to the file: " + dist_file);
+	std::cerr << "Error: could not write to the file: "
+		  << dist_file << std::endl;
+	std::exit(1);
+    }
+
+    int rows = dist.rows();
+    int cols = dist.cols();
+    fout.write(reinterpret_cast<char*>(&rows), sizeof(rows));
+    fout.write(reinterpret_cast<char*>(&cols), sizeof(cols));
+
+    fout.write(reinterpret_cast<const char*>(dist.data()), sizeof(double) * dist.size());
+    fout.close();
+}
+
+void rssebd_array::load_dist_matrix(const std::string& dist_file)
+{
+    std::ifstream fin(dist_file, std::ios::binary);
+
+    if(!fin)
+    {
+	// throw std::runtime_error("Could not open the file: " + embed_file);
+	std::cerr << "Error: could not open the file: "
+		  << dist_file << std::endl;
+	std::exit(1);
+    }
+
+    int rows, cols;
+    fin.read(reinterpret_cast<char*>(&rows), sizeof(rows));
+    fin.read(reinterpret_cast<char*>(&cols), sizeof(cols));
+
+    Eigen::MatrixXd dist(rows, cols);
+
+    fin.read(reinterpret_cast<char*>(dist.data()), sizeof(double) * dist.size());
+    fin.close();
+
+    std::cout << "Loaded " << rows << "x" << cols << " distance matrix" << std::endl;
     
     Eigen::IOFormat fmt(Eigen::StreamPrecision, Eigen::DontAlignCols, "\t", "\n");
 
-    fout << dist.format(fmt) << std::endl;
-    fout.close();
+    std::cout << dist.format(fmt) << std::endl;
 }
 
 

@@ -33,6 +33,8 @@ void compute_distances(const std::string& embed_file1,
 
 void show_embeddings(const std::string& embed_file);
 
+void show_distances(const std::string& dist_file);
+
 int main(int argc, char** argv)
 {
     CLI::App app("SubseqEmbed - Edit distance embedding by random subsequences");
@@ -100,7 +102,7 @@ int main(int argc, char** argv)
 
     std::string dist_file;
     dist->add_option("-o,--output", dist_file, "File for storing the embedding distances")
-	->default_val("dist.txt");
+	->default_val("dist.rssebd-dist");
 
     
     // *****************
@@ -110,6 +112,16 @@ int main(int argc, char** argv)
 
     std::string embed_file;
     info->add_option("-i,--input,embed_file", embed_file, "Input embedding file")
+	->required()
+	->check(CLI::ExistingFile);
+
+    
+    // *****************
+    // show subcommand
+    // *****************   
+    CLI::App* show = app.add_subcommand("show", "Print a embedding distance matrix stored in a binary file to stdout");
+
+    show->add_option("-i,--input,dist_file", dist_file, "Input distance matrix file")
 	->required()
 	->check(CLI::ExistingFile);
 
@@ -132,6 +144,10 @@ int main(int argc, char** argv)
     else if(app.got_subcommand(info))
     {
 	show_embeddings(embed_file);
+    }
+    else if(app.got_subcommand(show))
+    {
+	show_distances(dist_file);
     }
     
     return 0;
@@ -343,4 +359,11 @@ void show_embeddings(const std::string& embed_file)
 	std::cout << std::endl;
 	delete[] cur;
     }
+}
+
+
+void show_distances(const std::string& dist_file)
+{
+    std::cout << "Loading distances from the file: " << dist_file << std::endl;
+    rssebd_array::load_dist_matrix(dist_file);
 }

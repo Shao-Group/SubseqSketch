@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <Eigen/Dense>
 
 class rssebd_array
 {
@@ -24,7 +25,7 @@ public:
 		     const std::string& embed_file);
 
     // Compute row_normalized(embed1) * column_normalized(transpose(embed2))
-    // and write the resulting matrix to dist_file.
+    // and write the resulting matrix to dist_file in binary format.
     static void pairwise_cos_dist(const std::vector<int*>& embed1,
 				  const std::vector<int*>& embed2,
 				  int embed_dim,
@@ -32,6 +33,13 @@ public:
 
     // Free each int array in embeds.
     static void free(std::vector<int*>& embeds);
+
+    // Load a distance matrix saved by save_dist_matrix and output to std::cout
+    static void load_dist_matrix(const std::string& dist_file);
+    
+private:
+    static void save_dist_matrix(const Eigen::MatrixXd& dist,
+				 const std::string& dist_file);
 };
 
 #endif
