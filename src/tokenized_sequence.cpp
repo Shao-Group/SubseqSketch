@@ -67,7 +67,7 @@ int64_t tokenized_sequence::find(const std::string& token, int64_t st_pos) const
 		i = m + 1;
 	    }
 	}
-	result = i;
+	result = positions[i];
     }
 
     return result;
