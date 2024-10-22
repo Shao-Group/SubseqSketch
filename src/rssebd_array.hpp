@@ -34,12 +34,16 @@ public:
     // Free each int array in embeds.
     static void free(std::vector<int*>& embeds);
 
-    // Load a distance matrix saved by save_dist_matrix and output to std::cout
-    static void load_dist_matrix(const std::string& dist_file);
+    // Load a distance matrix saved by save_dist_matrix and output
+    // to std::cout or to npy format
+    static void load_dist_matrix(const std::string& dist_file, bool to_stdout);
     
 private:
     static void save_dist_matrix(const Eigen::MatrixXd& dist,
 				 const std::string& dist_file);
+    static void show_dist_matrix(const Eigen::MatrixXd& dist);
+    static void save_dist_matrix_to_npy(const Eigen::MatrixXd& dist,
+					const std::string& dist_file);
 };
 
 #endif

@@ -137,7 +137,7 @@ void rssebd_array::save_dist_matrix(const Eigen::MatrixXd& dist,
     fout.close();
 }
 
-void rssebd_array::load_dist_matrix(const std::string& dist_file)
+void rssebd_array::load_dist_matrix(const std::string& dist_file, bool to_stdout)
 {
     std::ifstream fin(dist_file, std::ios::binary);
 
@@ -159,10 +159,15 @@ void rssebd_array::load_dist_matrix(const std::string& dist_file)
     fin.close();
 
     std::cout << "Loaded " << rows << "x" << cols << " distance matrix" << std::endl;
-    
-    Eigen::IOFormat fmt(Eigen::StreamPrecision, Eigen::DontAlignCols, "\t", "\n");
 
-    std::cout << dist.format(fmt) << std::endl;
+    if(to_stdout)
+    {
+	show_dist_matrix(dist);
+    }
+    else
+    {
+	save_dist_matrix_to_npy(dist, dist_file + ".npy");
+    }
 }
 
 
@@ -173,4 +178,63 @@ void rssebd_array::free(std::vector<int*>& embeds)
 	delete[] x;
     }
     embeds.clear();
+}
+
+void rssebd_array::show_dist_matrix(const Eigen::MatrixXd& dist)
+{
+    Eigen::IOFormat fmt(Eigen::StreamPrecision, Eigen::DontAlignCols, "\t", "\n");
+
+    std::cout << dist.format(fmt) << std::endl;
+}
+
+void rssebd_array::save_dist_matrix_to_npy(const Eigen::MatrixXd& dist,
+					   const std::string& dist_file)
+{
+    std::ofstream fout(dist_file, std::ios::binary);
+    if(!fout)
+    {
+	std::cerr << "Error: could not write to the file: "
+		  << dist_file << std::endl;
+	std::exit(1);
+    }
+
+    /*
+      The first 6 bytes are a magic string: exactly \x93NUMPY.
+
+      The next 1 byte is an unsigned byte: the major version number of the file format, e.g. \x01.
+
+      The next 1 byte is an unsigned byte: the minor version number of the file format, e.g. \x00. Note: the version of the file format is not tied to the version of the numpy package.
+
+      The next 2 bytes form a little-endian unsigned short int: the length of the header data HEADER_LEN.
+
+      The next HEADER_LEN bytes form the header data describing the array’s format. It is an ASCII string which contains a Python literal expression of a dictionary. It is terminated by a newline (\n) and padded with spaces (\x20) to make the total of len(magic string) + 2 + len(length) + HEADER_LEN be evenly divisible by 64 for alignment purposes.
+    */
+    
+    // NPY magic number and version
+    const char npy_magic[] = { '\x93', 'N', 'U', 'M', 'P', 'Y', 1, 0};
+    fout.write(npy_magic, sizeof(npy_magic));
+
+    // Create the header
+    std::string header = "{'descr': '<f8', 'fortran_order': True, 'shape': (" 
+	+ std::to_string(dist.rows()) + ", "
+	+ std::to_string(dist.cols()) + "), }";
+
+    int len = sizeof(npy_magic) + 2 + header.size();
+    int padding_len =  (64 - (header.size() % 64)) % 64;
+    std::string padding(padding_len, '\x20');
+
+    // Write header length
+    uint16_t header_len = static_cast<uint16_t>(header.size() + padding_len + 1);
+    uint8_t header_len_le[2] = {static_cast<uint8_t>(header_len & 0xff),
+				static_cast<uint8_t>((header_len >> 8) & 0xff)};
+    fout.write(reinterpret_cast<char*>(header_len_le), 2);
+
+    // Write header with padding
+    fout << header << padding << '\n';
+
+    // Write the data
+    fout.write(reinterpret_cast<const char*>(dist.data()), dist.size() * sizeof(double));
+    fout.close();
+
+    std::cout << "Distance matrix wrote to the file: " << dist_file << std::endl;
 }

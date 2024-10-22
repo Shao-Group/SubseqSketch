@@ -33,7 +33,7 @@ void compute_distances(const std::string& embed_file1,
 
 void show_embeddings(const std::string& embed_file);
 
-void show_distances(const std::string& dist_file);
+void show_distances(const std::string& dist_file, bool to_stdout);
 
 int main(int argc, char** argv)
 {
@@ -119,12 +119,15 @@ int main(int argc, char** argv)
     // *****************
     // show subcommand
     // *****************   
-    CLI::App* show = app.add_subcommand("show", "Print a embedding distance matrix stored in a binary file to stdout");
+    CLI::App* show = app.add_subcommand("show", "Show an embedding distance matrix stored in a binary file");
 
     show->add_option("-i,--input,dist_file", dist_file, "Input distance matrix file")
 	->required()
 	->check(CLI::ExistingFile);
 
+    bool dist_to_stdout = true;
+    show->add_flag("-o,--to-stdout,!-p,!--to-npy", dist_to_stdout, "Output the distance matrix to stdout (if -o) or to a npy file (if -p)");
+    
 
     CLI11_PARSE(app, argc, argv);
 
@@ -147,7 +150,7 @@ int main(int argc, char** argv)
     }
     else if(app.got_subcommand(show))
     {
-	show_distances(dist_file);
+	show_distances(dist_file, dist_to_stdout);
     }
     
     return 0;
@@ -362,8 +365,8 @@ void show_embeddings(const std::string& embed_file)
 }
 
 
-void show_distances(const std::string& dist_file)
+void show_distances(const std::string& dist_file, bool to_stdout)
 {
     std::cout << "Loading distances from the file: " << dist_file << std::endl;
-    rssebd_array::load_dist_matrix(dist_file);
+    rssebd_array::load_dist_matrix(dist_file, to_stdout);
 }
