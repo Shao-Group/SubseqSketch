@@ -24,7 +24,7 @@ private:
     int token_len;
     // For each token appears in the underlying sequence, the indices of its
     // occurrences are stored in ascending order in the corresponding vector.
-    std::unordered_map<std::string, std::vector<int64_t>> index;
+    std::unordered_map<std::string, std::vector<int64_t> > index;
 
     // Search if token appears in the underlying string starting from st_pos+1.
     // If found, return the beginning index of that occurrence, otherwise

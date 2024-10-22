@@ -6,6 +6,7 @@ target_link_libraries(subsequences PUBLIC fasta_reader)
 add_library(tokenized_sequence tokenized_sequence.cpp)
 
 add_library(rssebd_array rssebd_array.cpp)
+target_link_libraries(rssebd_array PUBLIC OpenMP::OpenMP_CXX)
 
 add_executable(SubseqEmbed subseq_embed.cpp)
 target_link_libraries(SubseqEmbed PRIVATE subsequences)
