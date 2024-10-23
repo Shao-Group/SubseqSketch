@@ -27,10 +27,13 @@ void rssebd_array::write_all(const Eigen::MatrixXi& embeds, size_t num_embeds,
     fout.close();
 }
 
-
-Eigen::MatrixXd rssebd_array::load_all(size_t& num_embeds, int& embed_len,
-				       int& max_val, bool transpose,
-				       const std::string& embed_file)
+Eigen::MatrixXd
+rssebd_array::load_all(size_t& num_embeds,
+		       int& embed_len,
+		       int& max_val,
+		       bool normalize,
+		       bool transpose,
+		       const std::string& embed_file)
 {
     std::ifstream fin(embed_file, std::ios::binary);
 
@@ -52,7 +55,10 @@ Eigen::MatrixXd rssebd_array::load_all(size_t& num_embeds, int& embed_len,
     fin.close();
 
     Eigen::MatrixXd normalized = embeds.cast<double>();
-    normalized.rowwise().normalize();
+    if(normalize)
+    {
+	normalized.rowwise().normalize();
+    }
 
     if(transpose)
     {

@@ -317,7 +317,7 @@ void compute_distances(const std::string& embed_file1,
     size_t num_embeds1;
     int embed_dim1;
     int num_tokens1;
-    Eigen::MatrixXd embeds1 = rssebd_array::load_all(num_embeds1, embed_dim1, num_tokens1, false, embed_file1);
+    Eigen::MatrixXd embeds1 = rssebd_array::load_all(num_embeds1, embed_dim1, num_tokens1, true, false, embed_file1);
     std::cout << "Loaded " << num_embeds1 << " embeddings from "
 	      << embed_file1 << ", dimension: " << embed_dim1 << std::endl;
 
@@ -325,7 +325,7 @@ void compute_distances(const std::string& embed_file1,
     size_t num_embeds2;
     int embed_dim2;
     int num_tokens2;
-    Eigen::MatrixXd embeds2_tran = rssebd_array::load_all(num_embeds2, embed_dim2, num_tokens2, true, embed_file2);
+    Eigen::MatrixXd embeds2_tran = rssebd_array::load_all(num_embeds2, embed_dim2, num_tokens2, true, true, embed_file2);
     std::cout << "Loaded " << num_embeds2 << " embeddings from "
 	      << embed_file2 << ", dimension: " << embed_dim2 << std::endl;
 
@@ -356,27 +356,20 @@ void compute_distances(const std::string& embed_file1,
 
 void show_embeddings(const std::string& embed_file)
 {
-    std::vector<int*> embeds;
+    size_t num_embeds;
     int embed_dim;
     int num_tokens;
 
     std::cout << "Loading embeddings from the file: " << embed_file << std::endl;
-    rssebd_array::load(embeds, embed_dim, num_tokens, embed_file);
+    // rssebd_array::load(embeds, embed_dim, num_tokens, embed_file);
+    Eigen::MatrixXd embeds = rssebd_array::load_all(num_embeds, embed_dim, num_tokens, false, false, embed_file);
 
     std::cout << "Embedding dimension: " << embed_dim << std::endl;
     std::cout << "Max possible value: " << num_tokens << std::endl;
-    std::cout << "Number of embeddings: " << embeds.size() << std::endl;   
-    
-    for(int* cur : embeds)
-    {
-	std::cout << cur[0];
-	for(int i = 1; i < embed_dim; ++i)
-	{
-	    std::cout << " " << cur[i];
-	}
-	std::cout << std::endl;
-	delete[] cur;
-    }
+    std::cout << "Number of embeddings: " << num_embeds << std::endl;   
+
+    Eigen::IOFormat fmt(0, 0, " ", "\n");
+    std::cout << embeds.format(fmt) << std::endl;
 }
 
 

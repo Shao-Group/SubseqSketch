@@ -23,8 +23,11 @@ public:
     // Load a binary file with an embedding matrix. The first three
     // values are assumbed to be num_embeds(size_t), embed_len(int),
     // and max_val(int)
-    static Eigen::MatrixXd load_all(size_t& num_embeds, int& embed_len,
-				    int& max_val, bool transpose,
+    static Eigen::MatrixXd load_all(size_t& num_embeds,
+				    int& embed_len,
+				    int& max_val,
+				    bool normalize,
+				    bool transpose,
 				    const std::string& embed_file);
     
     // Write a single embedding array to file in binary format
