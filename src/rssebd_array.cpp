@@ -7,6 +7,62 @@
 #include "rssebd_array.hpp"
 #include <string>
 
+void rssebd_array::write_all(const Eigen::MatrixXi& embeds, size_t num_embeds,
+			     int embed_len, int max_val,
+			     const std::string& embed_file)
+{
+    std::ofstream fout(embed_file, std::ios::binary);
+    if(!fout)
+    {
+	std::cerr << "Error: could not open the file: "
+		  << embed_file << std::endl;
+	std::exit(1);
+    }
+    
+    fout.write(reinterpret_cast<const char*>(&num_embeds), sizeof(num_embeds));
+    fout.write(reinterpret_cast<const char*>(&embed_len), sizeof(embed_len));
+    fout.write(reinterpret_cast<const char*>(&max_val), sizeof(max_val));
+
+    fout.write(reinterpret_cast<const char*>(embeds.data()), sizeof(int) * num_embeds * embed_len);
+    fout.close();
+}
+
+
+Eigen::MatrixXd rssebd_array::load_all(size_t& num_embeds, int& embed_len,
+				       int& max_val, bool transpose,
+				       const std::string& embed_file)
+{
+    std::ifstream fin(embed_file, std::ios::binary);
+
+    if(!fin)
+    {
+	// throw std::runtime_error("Could not open the file: " + embed_file);
+	std::cerr << "Error: could not open the file: "
+		  << embed_file << std::endl;
+	std::exit(1);
+    }
+    
+    fin.read(reinterpret_cast<char*>(&num_embeds), sizeof(num_embeds));
+    fin.read(reinterpret_cast<char*>(&embed_len), sizeof(embed_len));
+    fin.read(reinterpret_cast<char*>(&max_val), sizeof(max_val));
+
+    Eigen::MatrixXi embeds(num_embeds, embed_len);
+
+    fin.read(reinterpret_cast<char*>(embeds.data()), sizeof(int) * num_embeds * embed_len);
+    fin.close();
+
+    Eigen::MatrixXd normalized = embeds.cast<double>();
+    normalized.rowwise().normalize();
+
+    if(transpose)
+    {
+	normalized.transposeInPlace();
+    }
+
+    return normalized;
+}
+
+
 void rssebd_array::write(const int* embed, int size, int max_val,
 			 std::ofstream& fout)
 {
@@ -108,6 +164,20 @@ void rssebd_array::pairwise_cos_dist(const std::vector<int*>& embed1,
 
     Eigen::MatrixXd dist(s1, s2);
     dist.noalias() = m1 * m2;
+    dist.array() = 1 - dist.array();
+    double zero_threshold = 1e-8;
+    dist = (dist.array() < zero_threshold).select(0.0f, dist);
+
+    save_dist_matrix(dist, dist_file);
+}
+
+
+void rssebd_array::pairwise_cos_dist(const Eigen::MatrixXd& embed1,
+				     const Eigen::MatrixXd& embed2_tran,
+				     const std::string& dist_file)
+{
+    Eigen::MatrixXd dist(embed1.rows(), embed2_tran.cols());
+    dist.noalias() = embed1 * embed2_tran;
     dist.array() = 1 - dist.array();
     double zero_threshold = 1e-8;
     dist = (dist.array() < zero_threshold).select(0.0f, dist);

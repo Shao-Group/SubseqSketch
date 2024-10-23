@@ -59,3 +59,13 @@ std::string fasta_reader::next()
 
     return oss.str();
 }
+
+void fasta_reader::read_all(std::vector<std::string>& seqs)
+{
+    seqs.clear();
+    
+    while(!eof())
+    {
+	seqs.push_back(std::move(next()));
+    }
+}

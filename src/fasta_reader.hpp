@@ -12,7 +12,8 @@
 #include <limits>
 #include <iostream>
 #include <cassert>
- 
+#include <vector>
+
 constexpr auto MAX_SIZE = std::numeric_limits<std::streamsize>::max();
 
 class fasta_reader
@@ -26,6 +27,8 @@ public:
     // a header line starts with '>', the header line is then ignored. Following
     // lines until the next header or eof are concatenated and returned.
     std::string next();
+
+    void read_all(std::vector<std::string>& seqs);
     
 private:
     std::ifstream fin;

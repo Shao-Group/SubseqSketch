@@ -270,51 +270,38 @@ void compute_embeddings(const std::string& subseq_file,
 	      << subs.token_len << std::endl;
 
     int num_subs = subs.size();
-    int* embed = new int[num_subs];
     std::string ext_name = "D" + std::to_string(num_subs) +
 	".l" + std::to_string(subs.num_tokens) +
 	".t" + std::to_string(subs.token_len) +
 	".rssebd";
     
     for(const std::string& file : input_files)
-    {
-	std::cout << "Embedding sequence(s) in file: " << file << std::endl;
-	
+    {	
 	fasta_reader fin(file);
-	
-	std::string out_file = change_file_ext(file, ext_name);
-	std::ofstream fout(out_file, std::ios::binary);
-	if(!fout)
-	{
-	    // throw std::runtime_error("Could not write to file: " + out_file);
-	    std::cerr << "Error: could not write to file: "
-		      << out_file << std::endl;
-	    std::exit(1);
-	}
-	
-	int ct = 0;
-	while(!fin.eof())
-	{
-	    // tokenized_sequence s_index(fin.next(), subs.token_len);
+		
+	std::vector<std::string> seqs;
+	fin.read_all(seqs);
+	size_t ct = seqs.size();
 
-	    std::string cur(std::move(fin.next()));
-	    
+	std::cout << "Embedding " << ct << " sequence(s) in file: " << file << std::endl;
+
+	Eigen::MatrixXi embeds(ct, num_subs);
+
 #pragma omp parallel for default(shared)
-	    for(int i = 0; i < num_subs; ++i)
+	for(size_t i = 0; i < ct; ++i)
+	{
+	    for(int j = 0; j < num_subs; ++j)
 	    {
-		// embed[i] = s_index.longest_subsequence(subs.seqs[i]);
-		embed[i] = longest_subsequence(cur, subs.seqs[i], subs.token_len);
+		embeds(i, j) = longest_subsequence(seqs[i], subs.seqs[j], subs.token_len);
 	    }
-
-	    rssebd_array::write(embed, num_subs, subs.num_tokens, fout);
-	    ++ct;
 	}
 
+	std::string out_file = change_file_ext(file, ext_name);
+	rssebd_array::write_all(embeds, ct, num_subs, subs.num_tokens, out_file);
+	
 	std::cout << "Finished " << ct << " sequence(s), embedding wrote to file "
 		  << out_file << std::endl;
     }
-
-    delete[] embed;
 }
 
 
@@ -327,19 +314,19 @@ void compute_distances(const std::string& embed_file1,
     std::cout << "dist_file: " << dist_file << std::endl << std::endl;
 
     std::cout << "Loading embeddings from the file: " << embed_file1 << std::endl;
-    std::vector<int*> embeds1;
+    size_t num_embeds1;
     int embed_dim1;
     int num_tokens1;
-    rssebd_array::load(embeds1, embed_dim1, num_tokens1, embed_file1);
-    std::cout << "Loaded " << embeds1.size() << " embeddings from "
+    Eigen::MatrixXd embeds1 = rssebd_array::load_all(num_embeds1, embed_dim1, num_tokens1, false, embed_file1);
+    std::cout << "Loaded " << num_embeds1 << " embeddings from "
 	      << embed_file1 << ", dimension: " << embed_dim1 << std::endl;
 
     std::cout << "Loading embeddings from the file: " << embed_file2 << std::endl;
-    std::vector<int*> embeds2;
+    size_t num_embeds2;
     int embed_dim2;
     int num_tokens2;
-    rssebd_array::load(embeds2, embed_dim2, num_tokens2, embed_file2);
-    std::cout << "Loaded " << embeds2.size() << " embeddings from "
+    Eigen::MatrixXd embeds2_tran = rssebd_array::load_all(num_embeds2, embed_dim2, num_tokens2, true, embed_file2);
+    std::cout << "Loaded " << num_embeds2 << " embeddings from "
 	      << embed_file2 << ", dimension: " << embed_dim2 << std::endl;
 
     if(embed_dim1 != embed_dim2)
@@ -356,13 +343,14 @@ void compute_distances(const std::string& embed_file1,
     }
 
     std::cout << "Computing pairwise embedding distances..." << std::endl;
-    rssebd_array::pairwise_cos_dist(embeds1, embeds2, embed_dim1, dist_file);
-    std::cout << embeds1.size() << "x" << embeds2.size()
+    // rssebd_array::pairwise_cos_dist(embeds1, embeds2, embed_dim1, dist_file);
+    rssebd_array::pairwise_cos_dist(embeds1, embeds2_tran, dist_file);
+    std::cout << num_embeds1 << "x" << num_embeds2
 	      << " embedding distance matrix wrote to file: "
 	      << dist_file << std::endl;
 
-    rssebd_array::free(embeds1);
-    rssebd_array::free(embeds2);
+    // rssebd_array::free(embeds1);
+    // rssebd_array::free(embeds2);
 }
 
 

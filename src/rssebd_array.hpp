@@ -15,6 +15,18 @@
 class rssebd_array
 {
 public:
+    // Write a embedding matrix to file in binary format, dimension is
+    // num_embeds x embed_len, each row is the embedding of one sequence
+    static void write_all(const Eigen::MatrixXi& embeds, size_t num_embeds,
+			  int embed_len, int max_val, const std::string& embed_file);
+
+    // Load a binary file with an embedding matrix. The first three
+    // values are assumbed to be num_embeds(size_t), embed_len(int),
+    // and max_val(int)
+    static Eigen::MatrixXd load_all(size_t& num_embeds, int& embed_len,
+				    int& max_val, bool transpose,
+				    const std::string& embed_file);
+    
     // Write a single embedding array to file in binary format
     static void write(const int* embed, int size, int max_val, std::ofstream& fout);
     
@@ -29,6 +41,11 @@ public:
     static void pairwise_cos_dist(const std::vector<int*>& embed1,
 				  const std::vector<int*>& embed2,
 				  int embed_dim,
+				  const std::string& dist_file);
+
+    // Assume embed2 has been transposed, see rssebd_array::load_all.
+    static void pairwise_cos_dist(const Eigen::MatrixXd& embed1,
+				  const Eigen::MatrixXd& embed2_tran,
 				  const std::string& dist_file);
 
     // Free each int array in embeds.
