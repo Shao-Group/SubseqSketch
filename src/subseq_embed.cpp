@@ -10,7 +10,7 @@
 
 #include "fasta_reader.hpp"
 #include "subsequences.hpp"
-#include "tokenized_sequence.hpp"
+// #include "tokenized_sequence.hpp"
 #include "rssebd_array.hpp"
 #include "CLI11.hpp"
 
@@ -228,6 +228,30 @@ void gen_random_subsequences(const int subseq_len,
 	      << subseq_file << std::endl;
 }
 
+// Return the maximum number of consecutive tokens (starting from the
+// leftmost one) in test that form a subsequence (of tokens) of seq
+// using linear search.
+int64_t longest_subsequence(const std::string& seq, const std::string& test,
+			    int token_len)
+{
+    int result = 0;
+    int64_t p = -1;
+
+    for(int i = 0; i < test.size(); i += token_len)
+    {
+	p = seq.find(test.substr(i, token_len), p + 1);
+	if(p == std::string::npos)
+	{
+	    break;
+	}
+	else
+	{
+	    result += 1;
+	}
+    }
+
+    return result;
+}
 
 void compute_embeddings(const std::string& subseq_file,
 			const std::vector<std::string>& input_files)
@@ -271,12 +295,15 @@ void compute_embeddings(const std::string& subseq_file,
 	int ct = 0;
 	while(!fin.eof())
 	{
-	    tokenized_sequence s_index(fin.next(), subs.token_len);
+	    // tokenized_sequence s_index(fin.next(), subs.token_len);
 
+	    std::string cur(std::move(fin.next()));
+	    
 #pragma omp parallel for default(shared)
 	    for(int i = 0; i < num_subs; ++i)
 	    {
-		embed[i] = s_index.longest_subsequence(subs.seqs[i]);
+		// embed[i] = s_index.longest_subsequence(subs.seqs[i]);
+		embed[i] = longest_subsequence(cur, subs.seqs[i], subs.token_len);
 	    }
 
 	    rssebd_array::write(embed, num_subs, subs.num_tokens, fout);
