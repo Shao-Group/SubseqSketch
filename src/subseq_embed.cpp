@@ -287,13 +287,21 @@ void compute_embeddings(const std::string& subseq_file,
 
 	Eigen::MatrixXi embeds(ct, num_subs);
 
-#pragma omp parallel for default(shared)
+	std::vector<std::pair<size_t, int> > pairs;
+	pairs.reserve(ct * num_subs);
+	
 	for(size_t i = 0; i < ct; ++i)
 	{
 	    for(int j = 0; j < num_subs; ++j)
 	    {
-		embeds(i, j) = longest_subsequence(seqs[i], subs.seqs[j], subs.token_len);
+		pairs.emplace_back(i, j);
 	    }
+	}
+
+#pragma omp parallel for default(shared)
+	for(const std::pair<size_t, int>& p : pairs)
+	{
+	    embeds(p.first, p.second) = longest_subsequence(seqs[p.first], subs.seqs[p.second], subs.token_len);
 	}
 
 	std::string out_file = change_file_ext(file, ext_name);
