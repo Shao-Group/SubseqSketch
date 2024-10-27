@@ -29,6 +29,7 @@ void compute_embeddings(const std::string& subseq_file,
 
 void compute_distances(const std::string& embed_file1,
 		       const std::string& embed_file2,
+		       bool use_cos_dist,
 		       const std::string& dist_file);
 
 void show_embeddings(const std::string& embed_file);
@@ -100,6 +101,9 @@ int main(int argc, char** argv)
 	->required()
 	->check(CLI::ExistingFile);
 
+    bool use_cos_dist = true;
+    dist->add_flag("-c,--cos-distance,!-m,!--max-likelyhood", use_cos_dist, "Compute the cosine distance (if -c) or the maximum likelyhood estimation of the mutation rate (if -m)");
+
     std::string dist_file;
     dist->add_option("-o,--output", dist_file, "File for storing the embedding distances")
 	->default_val("dist.rssebd-dist");
@@ -142,7 +146,7 @@ int main(int argc, char** argv)
     }
     else if(app.got_subcommand(dist))
     {
-	compute_distances(embed_file1, embed_file2, dist_file);
+	compute_distances(embed_file1, embed_file2, use_cos_dist, dist_file);
     }
     else if(app.got_subcommand(info))
     {
@@ -315,6 +319,7 @@ void compute_embeddings(const std::string& subseq_file,
 
 void compute_distances(const std::string& embed_file1,
 		       const std::string& embed_file2,
+		       bool use_cos_dist,
 		       const std::string& dist_file)
 {
     std::cout << "embed_file1: " << embed_file1 << std::endl;
@@ -325,7 +330,15 @@ void compute_distances(const std::string& embed_file1,
     size_t num_embeds1;
     int embed_dim1;
     int num_tokens1;
-    Eigen::MatrixXd embeds1 = rssebd_array::load_all(num_embeds1, embed_dim1, num_tokens1, true, false, embed_file1);
+    Eigen::MatrixXd embeds1;
+    if(use_cos_dist)
+    {
+	embeds1 = rssebd_array::load_all(num_embeds1, embed_dim1, num_tokens1, true, false, embed_file1);
+    }
+    else
+    {
+	embeds1 = rssebd_array::load_all(num_embeds1, embed_dim1, num_tokens1, false, false, embed_file1);
+    }
     std::cout << "Loaded " << num_embeds1 << " embeddings from "
 	      << embed_file1 << ", dimension: " << embed_dim1 << std::endl;
 
@@ -333,7 +346,15 @@ void compute_distances(const std::string& embed_file1,
     size_t num_embeds2;
     int embed_dim2;
     int num_tokens2;
-    Eigen::MatrixXd embeds2_tran = rssebd_array::load_all(num_embeds2, embed_dim2, num_tokens2, true, true, embed_file2);
+    Eigen::MatrixXd embeds2;
+    if(use_cos_dist)
+    {
+	embeds2 = rssebd_array::load_all(num_embeds2, embed_dim2, num_tokens2, true, true, embed_file2);
+    }
+    else
+    {
+	embeds2 = rssebd_array::load_all(num_embeds2, embed_dim2, num_tokens2, false, false, embed_file2);
+    }
     std::cout << "Loaded " << num_embeds2 << " embeddings from "
 	      << embed_file2 << ", dimension: " << embed_dim2 << std::endl;
 
@@ -352,7 +373,14 @@ void compute_distances(const std::string& embed_file1,
 
     std::cout << "Computing pairwise embedding distances..." << std::endl;
     // rssebd_array::pairwise_cos_dist(embeds1, embeds2, embed_dim1, dist_file);
-    rssebd_array::pairwise_cos_dist(embeds1, embeds2_tran, dist_file);
+    if(use_cos_dist)
+    {
+	rssebd_array::pairwise_cos_dist(embeds1, embeds2, dist_file);
+    }
+    else
+    {
+	rssebd_array::pairwise_max_likelyhood_dist(embeds1, embeds2, dist_file);
+    }
     std::cout << num_embeds1 << "x" << num_embeds2
 	      << " embedding distance matrix wrote to file: "
 	      << dist_file << std::endl;

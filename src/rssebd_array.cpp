@@ -314,3 +314,34 @@ void rssebd_array::save_dist_matrix_to_npy(const Eigen::MatrixXd& dist,
 
     std::cout << "Distance matrix wrote to the file: " << dist_file << std::endl;
 }
+
+
+void rssebd_array::pairwise_max_likelyhood_dist(const Eigen::MatrixXd& embed1,
+						const Eigen::MatrixXd& embed2,
+						const std::string& dist_file)
+{
+    // std::cout << "embed1" << std::endl << embed1 << std::endl;
+    // std::cout << "embed2" << std::endl << embed2 << std::endl;
+    
+    Eigen::MatrixXd result(embed2.rows(), embed1.rows());
+    for(size_t i = 0; i < embed1.rows(); ++i)
+    {
+	Eigen::MatrixXd cur = embed1.row(i).replicate(embed2.rows(), 1);
+	// std::cout << "cur" << std::endl << cur << std::endl;
+	
+	Eigen::ArrayXd min = cur.array().min(embed2.array()).rowwise().sum();
+	// std::cout << "min" << std::endl << min << std::endl;
+	
+	Eigen::ArrayXd diff = ((cur - embed2).array() == 0).select(Eigen::MatrixXd::Zero(embed2.rows(), embed2.cols()), 1).rowwise().sum();
+
+	// std::cout << "diff" << std::endl << diff << std::endl;
+	// result.col(i) = diff / (min + diff);
+	result.col(i) = diff / min;
+    }
+
+    double zero_threshold = 1e-8;
+    result = (result.array() < zero_threshold).select(0.0f, result);
+    result.transposeInPlace();
+    
+    save_dist_matrix(result.matrix(), dist_file);
+}

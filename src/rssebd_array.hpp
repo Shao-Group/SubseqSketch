@@ -51,6 +51,11 @@ public:
 				  const Eigen::MatrixXd& embed2_tran,
 				  const std::string& dist_file);
 
+    // Assume embed2 has NOT been transposed, see rssebd_array::load_all.
+    static void pairwise_max_likelyhood_dist(const Eigen::MatrixXd& embed1,
+					     const Eigen::MatrixXd& embed2,
+					     const std::string& dist_file);
+
     // Free each int array in embeds.
     static void free(std::vector<int*>& embeds);
 
