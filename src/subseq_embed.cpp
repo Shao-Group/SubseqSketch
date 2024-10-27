@@ -35,6 +35,9 @@ void show_embeddings(const std::string& embed_file);
 
 void show_distances(const std::string& dist_file, bool to_stdout);
 
+void merge_embeddings(const std::vector<std::string>& embed_files,
+		      const std::string& output_file);
+
 int main(int argc, char** argv)
 {
     CLI::App app("SubseqEmbed - Edit distance embedding by random subsequences");
@@ -104,13 +107,26 @@ int main(int argc, char** argv)
     dist->add_option("-o,--output", dist_file, "File for storing the embedding distances")
 	->default_val("dist.rssebd-dist");
 
+
+    // *****************
+    // merge subcommand
+    // *****************   
+    CLI::App* merge = app.add_subcommand("merge", "Merge several embedding files into one");
+
+    std::string embed_file;
+    merge->add_option("-o,--output", embed_file, "Output embedding file")
+	->default_val("merged.rssebd");
+
+    merge->add_option("-i,--input,embed_files", input_files, "Embed files to be merged")
+	->expected(-2)
+	->check(CLI::ExistingFile);
+
     
     // *****************
     // info subcommand
     // *****************   
     CLI::App* info = app.add_subcommand("info", "Show content of a binary embedding file");
 
-    std::string embed_file;
     info->add_option("-i,--input,embed_file", embed_file, "Input embedding file")
 	->required()
 	->check(CLI::ExistingFile);
@@ -151,6 +167,10 @@ int main(int argc, char** argv)
     else if(app.got_subcommand(show))
     {
 	show_distances(dist_file, dist_to_stdout);
+    }
+    else if(app.got_subcommand(merge))
+    {
+	merge_embeddings(input_files, embed_file);
     }
     
     return 0;
@@ -325,7 +345,7 @@ void compute_distances(const std::string& embed_file1,
     size_t num_embeds1;
     int embed_dim1;
     int num_tokens1;
-    Eigen::MatrixXd embeds1 = rssebd_array::load_all(num_embeds1, embed_dim1, num_tokens1, true, false, embed_file1);
+    Eigen::MatrixXi embeds1 = rssebd_array::load_all(num_embeds1, embed_dim1, num_tokens1, embed_file1);
     std::cout << "Loaded " << num_embeds1 << " embeddings from "
 	      << embed_file1 << ", dimension: " << embed_dim1 << std::endl;
 
@@ -333,7 +353,7 @@ void compute_distances(const std::string& embed_file1,
     size_t num_embeds2;
     int embed_dim2;
     int num_tokens2;
-    Eigen::MatrixXd embeds2_tran = rssebd_array::load_all(num_embeds2, embed_dim2, num_tokens2, true, true, embed_file2);
+    Eigen::MatrixXi embeds2 = rssebd_array::load_all(num_embeds2, embed_dim2, num_tokens2, embed_file2);
     std::cout << "Loaded " << num_embeds2 << " embeddings from "
 	      << embed_file2 << ", dimension: " << embed_dim2 << std::endl;
 
@@ -352,7 +372,7 @@ void compute_distances(const std::string& embed_file1,
 
     std::cout << "Computing pairwise embedding distances..." << std::endl;
     // rssebd_array::pairwise_cos_dist(embeds1, embeds2, embed_dim1, dist_file);
-    rssebd_array::pairwise_cos_dist(embeds1, embeds2_tran, dist_file);
+    rssebd_array::pairwise_cos_dist(embeds1, embeds2, dist_file);
     std::cout << num_embeds1 << "x" << num_embeds2
 	      << " embedding distance matrix wrote to file: "
 	      << dist_file << std::endl;
@@ -370,7 +390,7 @@ void show_embeddings(const std::string& embed_file)
 
     std::cout << "Loading embeddings from the file: " << embed_file << std::endl;
     // rssebd_array::load(embeds, embed_dim, num_tokens, embed_file);
-    Eigen::MatrixXd embeds = rssebd_array::load_all(num_embeds, embed_dim, num_tokens, false, false, embed_file);
+    Eigen::MatrixXi embeds = rssebd_array::load_all(num_embeds, embed_dim, num_tokens, embed_file);
 
     std::cout << "Embedding dimension: " << embed_dim << std::endl;
     std::cout << "Max possible value: " << num_tokens << std::endl;
@@ -385,4 +405,72 @@ void show_distances(const std::string& dist_file, bool to_stdout)
 {
     std::cout << "Loading distances from the file: " << dist_file << std::endl;
     rssebd_array::load_dist_matrix(dist_file, to_stdout);
+}
+
+void merge_embeddings(const std::vector<std::string>& embed_files,
+		      const std::string& out_file)
+{
+    size_t num_embeds = 0;
+    int embed_dim = -1;
+    int num_tokens = -1;
+
+    std::cout << "Merging" << std::endl << "input_files:";
+    for(const std::string& s : embed_files)
+    {
+	std::cout << " " << s;
+    }
+    std::cout << std::endl << "to out_file: " << out_file
+	      << std::endl << std::endl;
+
+    int ct = embed_files.size();
+    Eigen::MatrixXi embeds[ct];
+    for(int i = 0; i < ct; ++ i)
+    {
+	std::cout << "Loading embeddings from the file: " << embed_files[i] << std::endl;
+	size_t cur_num_embeds;
+	int cur_embed_dim;
+	int cur_num_tokens;
+        embeds[i] = rssebd_array::load_all(cur_num_embeds,
+					   cur_embed_dim,
+					   cur_num_tokens,
+					   embed_files[i]);
+	if(embed_dim < 0)
+	{
+	    embed_dim = cur_embed_dim;
+	}
+	else if(embed_dim != cur_embed_dim)
+	{
+	    std::cerr << "Error: cannot merge embedding matrices with different embedding dimension, was "
+		      << embed_dim << ", " << embed_files[i] << " is "
+		      << cur_embed_dim << std::endl;
+	    std::exit(1);
+	}
+
+	if(num_tokens < 0)
+	{
+	    num_tokens = cur_num_tokens;
+	}
+	else if(num_tokens != cur_num_tokens)
+	{
+	    std::cerr << "Warning: merge embedding matrices with different max possible values, was "
+		      << num_tokens << ", " << embed_files[i] << " is "
+		      << cur_num_tokens << std::endl;
+	}
+
+	num_embeds += cur_num_embeds;
+    }
+
+    Eigen::MatrixXi all(num_embeds, embed_dim);
+    size_t current_row = 0;
+    for(int i = 0; i < ct; ++i)
+    {
+	all.block(current_row, 0, embeds[i].rows(), embed_dim) = embeds[i];
+	current_row += embeds[i].rows();
+    }
+
+    rssebd_array::write_all(all, num_embeds, embed_dim, num_tokens, out_file);
+	
+    std::cout << "Merged " << ct << " files, " << num_embeds
+	      << " embeddings in total,  wrote to file "
+	      << out_file << std::endl;
 }

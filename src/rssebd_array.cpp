@@ -27,12 +27,10 @@ void rssebd_array::write_all(const Eigen::MatrixXi& embeds, size_t num_embeds,
     fout.close();
 }
 
-Eigen::MatrixXd
+Eigen::MatrixXi
 rssebd_array::load_all(size_t& num_embeds,
 		       int& embed_len,
 		       int& max_val,
-		       bool normalize,
-		       bool transpose,
 		       const std::string& embed_file)
 {
     std::ifstream fin(embed_file, std::ios::binary);
@@ -54,18 +52,7 @@ rssebd_array::load_all(size_t& num_embeds,
     fin.read(reinterpret_cast<char*>(embeds.data()), sizeof(int) * num_embeds * embed_len);
     fin.close();
 
-    Eigen::MatrixXd normalized = embeds.cast<double>();
-    if(normalize)
-    {
-	normalized.rowwise().normalize();
-    }
-
-    if(transpose)
-    {
-	normalized.transposeInPlace();
-    }
-
-    return normalized;
+    return embeds;
 }
 
 
@@ -178,12 +165,18 @@ void rssebd_array::pairwise_cos_dist(const std::vector<int*>& embed1,
 }
 
 
-void rssebd_array::pairwise_cos_dist(const Eigen::MatrixXd& embed1,
-				     const Eigen::MatrixXd& embed2_tran,
+void rssebd_array::pairwise_cos_dist(const Eigen::MatrixXi& embed1,
+				     const Eigen::MatrixXi& embed2,
 				     const std::string& dist_file)
 {
-    Eigen::MatrixXd dist(embed1.rows(), embed2_tran.cols());
-    dist.noalias() = embed1 * embed2_tran;
+    Eigen::MatrixXd normalized1 = embed1.cast<double>();
+    normalized1.rowwise().normalize();
+    Eigen::MatrixXd normalized2 = embed2.cast<double>();
+    normalized2.rowwise().normalize();
+    normalized2.transposeInPlace();
+    
+    Eigen::MatrixXd dist(embed1.rows(), embed2.rows());
+    dist.noalias() = normalized1 * normalized2;
     dist.array() = 1 - dist.array();
     double zero_threshold = 1e-8;
     dist = (dist.array() < zero_threshold).select(0.0f, dist);
