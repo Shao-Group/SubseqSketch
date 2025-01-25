@@ -1,5 +1,5 @@
 /*
-  Part of SubseqEmbed.
+  Part of SubseqSketch.
   Index of a string for fast (tokenized) subsequence searching.
   By Ke @ Penn State
 */

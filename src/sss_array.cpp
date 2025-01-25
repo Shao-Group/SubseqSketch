@@ -1,83 +1,83 @@
 /*
-  Part of SubseqEmbed.
-  File IO for binary embedding files.
+  Part of SubseqSketch.
+  File IO for binary sketching files.
   By Ke @ Penn State
 */
 
-#include "rssebd_array.hpp"
+#include "sss_array.hpp"
 #include <string>
 
-void rssebd_array::write_all(const Eigen::MatrixXi& embeds, size_t num_embeds,
-			     int embed_len, int max_val,
-			     const std::string& embed_file)
+void sss_array::write_all(const Eigen::MatrixXi& sketches, size_t num_sketches,
+			  int sketch_len, int max_val,
+			  const std::string& sketch_file)
 {
-    std::ofstream fout(embed_file, std::ios::binary);
+    std::ofstream fout(sketch_file, std::ios::binary);
     if(!fout)
     {
 	std::cerr << "Error: could not open the file: "
-		  << embed_file << std::endl;
+		  << sketch_file << std::endl;
 	std::exit(1);
     }
     
-    fout.write(reinterpret_cast<const char*>(&num_embeds), sizeof(num_embeds));
-    fout.write(reinterpret_cast<const char*>(&embed_len), sizeof(embed_len));
+    fout.write(reinterpret_cast<const char*>(&num_sketches), sizeof(num_sketches));
+    fout.write(reinterpret_cast<const char*>(&sketch_len), sizeof(sketch_len));
     fout.write(reinterpret_cast<const char*>(&max_val), sizeof(max_val));
 
-    fout.write(reinterpret_cast<const char*>(embeds.data()), sizeof(int) * num_embeds * embed_len);
+    fout.write(reinterpret_cast<const char*>(sketches.data()), sizeof(int) * num_sketches * sketch_len);
     fout.close();
 }
 
 Eigen::MatrixXi
-rssebd_array::load_all(size_t& num_embeds,
-		       int& embed_len,
-		       int& max_val,
-		       const std::string& embed_file)
+sss_array::load_all(size_t& num_sketches,
+		    int& sketch_len,
+		    int& max_val,
+		    const std::string& sketch_file)
 {
-    std::ifstream fin(embed_file, std::ios::binary);
+    std::ifstream fin(sketch_file, std::ios::binary);
 
     if(!fin)
     {
-	// throw std::runtime_error("Could not open the file: " + embed_file);
+	// throw std::runtime_error("Could not open the file: " + sketch_file);
 	std::cerr << "Error: could not open the file: "
-		  << embed_file << std::endl;
+		  << sketch_file << std::endl;
 	std::exit(1);
     }
     
-    fin.read(reinterpret_cast<char*>(&num_embeds), sizeof(num_embeds));
-    fin.read(reinterpret_cast<char*>(&embed_len), sizeof(embed_len));
+    fin.read(reinterpret_cast<char*>(&num_sketches), sizeof(num_sketches));
+    fin.read(reinterpret_cast<char*>(&sketch_len), sizeof(sketch_len));
     fin.read(reinterpret_cast<char*>(&max_val), sizeof(max_val));
 
-    Eigen::MatrixXi embeds(num_embeds, embed_len);
+    Eigen::MatrixXi sketches(num_sketches, sketch_len);
 
-    fin.read(reinterpret_cast<char*>(embeds.data()), sizeof(int) * num_embeds * embed_len);
+    fin.read(reinterpret_cast<char*>(sketches.data()), sizeof(int) * num_sketches * sketch_len);
     fin.close();
 
-    return embeds;
+    return sketches;
 }
 
 
-void rssebd_array::write(const int* embed, int size, int max_val,
-			 std::ofstream& fout)
+void sss_array::write(const int* sketch, int size, int max_val,
+		      std::ofstream& fout)
 {
     fout.write(reinterpret_cast<const char*>(&size), sizeof(size));
     fout.write(reinterpret_cast<const char*>(&max_val), sizeof(max_val));
-    fout.write(reinterpret_cast<const char*>(embed), sizeof *embed * size);
+    fout.write(reinterpret_cast<const char*>(sketch), sizeof *sketch * size);
 }
 
-void rssebd_array::load(std::vector<int*>& embeds, int& embed_dim,
-			int& num_tokens, const std::string& embed_file)
+void sss_array::load(std::vector<int*>& sketches, int& sketch_dim,
+		     int& num_tokens, const std::string& sketch_file)
 {
-    std::ifstream fin(embed_file, std::ios::binary);
+    std::ifstream fin(sketch_file, std::ios::binary);
 
     if(!fin)
     {
-	// throw std::runtime_error("Could not open the file: " + embed_file);
+	// throw std::runtime_error("Could not open the file: " + sketch_file);
 	std::cerr << "Error: could not open the file: "
-		  << embed_file << std::endl;
+		  << sketch_file << std::endl;
 	std::exit(1);
     }
 
-    embed_dim = -1;
+    sketch_dim = -1;
     num_tokens = -1;
     
     while(true)
@@ -86,17 +86,17 @@ void rssebd_array::load(std::vector<int*>& embeds, int& embed_dim,
 	fin.read(reinterpret_cast<char*>(&cur_dim), sizeof(cur_dim));
 	if(fin.eof()) break;
 	
-	if(embed_dim < 0) embed_dim = cur_dim;
-	else if(embed_dim != cur_dim)
+	if(sketch_dim < 0) sketch_dim = cur_dim;
+	else if(sketch_dim != cur_dim)
 	{
 	    /*
-	    throw std::runtime_error("Inconsistent embedding dimension found, #1: " +
-				     std::to_string(embed_dim) + " #" +
-				     std::to_string(embeds.size()+1) + ": " +
-				     std::to_string(cur_dim));
+	      throw std::runtime_error("Inconsistent sketching dimension found, #1: " +
+	      std::to_string(sketch_dim) + " #" +
+	      std::to_string(sketches.size()+1) + ": " +
+	      std::to_string(cur_dim));
 	    */
-	    std::cerr << "Error: inconsistent embedding dimension found, #1: "
-		      << embed_dim << " #" << embeds.size() + 1
+	    std::cerr << "Error: inconsistent sketching dimension found, #1: "
+		      << sketch_dim << " #" << sketches.size() + 1
 		      << ": " << cur_dim << std::endl;
 	    std::exit(1);
 	    
@@ -108,48 +108,48 @@ void rssebd_array::load(std::vector<int*>& embeds, int& embed_dim,
 	else if(num_tokens != cur_num_tokens)
 	{
 	    /*
-	    throw std::runtime_error("Inconsistent max value found, #1: " +
-				     std::to_string(num_tokens) + " #" +
-				     std::to_string(embeds.size()+1) + ": " +
-				     std::to_string(cur_num_tokens));
+	      throw std::runtime_error("Inconsistent max value found, #1: " +
+	      std::to_string(num_tokens) + " #" +
+	      std::to_string(sketches.size()+1) + ": " +
+	      std::to_string(cur_num_tokens));
 	    */
 	    std::cerr << "Warning: inconsistent max value found, #1: "
-		      << num_tokens << " #" << embeds.size() + 1
+		      << num_tokens << " #" << sketches.size() + 1
 		      << ": " << cur_num_tokens << std::endl;
 	}
 
 	int* cur = new int[cur_dim];
-	fin.read(reinterpret_cast<char*>(cur), sizeof *cur * embed_dim);
-	embeds.push_back(cur);
+	fin.read(reinterpret_cast<char*>(cur), sizeof *cur * sketch_dim);
+	sketches.push_back(cur);
     }
 
     fin.close();
 }
 
 
-void rssebd_array::pairwise_cos_dist(const std::vector<int*>& embed1,
-				     const std::vector<int*>& embed2,
-				     int embed_dim,
-				     const std::string& dist_file)
+void sss_array::pairwise_cos_dist(const std::vector<int*>& sketch1,
+				  const std::vector<int*>& sketch2,
+				  int sketch_dim,
+				  const std::string& dist_file)
 {
-    std::size_t s1 = embed1.size();
-    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> m1(s1, embed_dim);
+    std::size_t s1 = sketch1.size();
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> m1(s1, sketch_dim);
     for(int i = 0; i < s1; ++i)
     {
-	for(int j = 0; j < embed_dim; ++j)
+	for(int j = 0; j < sketch_dim; ++j)
 	{
-	    m1(i, j) = embed1[i][j];
+	    m1(i, j) = sketch1[i][j];
 	}
     }
     m1.rowwise().normalize();
 
-    std::size_t s2 = embed2.size();
-    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> m2(s2, embed_dim);
+    std::size_t s2 = sketch2.size();
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> m2(s2, sketch_dim);
     for(int i = 0; i < s2; ++i)
     {
-	for(int j = 0; j < embed_dim; ++j)
+	for(int j = 0; j < sketch_dim; ++j)
 	{
-	    m2(i, j) = embed2[i][j];
+	    m2(i, j) = sketch2[i][j];
 	}
     }
     m2.rowwise().normalize();
@@ -165,17 +165,17 @@ void rssebd_array::pairwise_cos_dist(const std::vector<int*>& embed1,
 }
 
 
-void rssebd_array::pairwise_cos_dist(const Eigen::MatrixXi& embed1,
-				     const Eigen::MatrixXi& embed2,
-				     const std::string& dist_file)
+void sss_array::pairwise_cos_dist(const Eigen::MatrixXi& sketch1,
+				  const Eigen::MatrixXi& sketch2,
+				  const std::string& dist_file)
 {
-    Eigen::MatrixXd normalized1 = embed1.cast<double>();
+    Eigen::MatrixXd normalized1 = sketch1.cast<double>();
     normalized1.rowwise().normalize();
-    Eigen::MatrixXd normalized2 = embed2.cast<double>();
+    Eigen::MatrixXd normalized2 = sketch2.cast<double>();
     normalized2.rowwise().normalize();
     normalized2.transposeInPlace();
     
-    Eigen::MatrixXd dist(embed1.rows(), embed2.rows());
+    Eigen::MatrixXd dist(sketch1.rows(), sketch2.rows());
     dist.noalias() = normalized1 * normalized2;
     dist.array() = 1 - dist.array();
     double zero_threshold = 1e-8;
@@ -185,8 +185,8 @@ void rssebd_array::pairwise_cos_dist(const Eigen::MatrixXi& embed1,
 }
 
 
-void rssebd_array::save_dist_matrix(const Eigen::MatrixXd& dist,
-				    const std::string& dist_file)
+void sss_array::save_dist_matrix(const Eigen::MatrixXd& dist,
+				 const std::string& dist_file)
 {
     std::ofstream fout(dist_file, std::ios::binary);
     if(!fout)
@@ -206,13 +206,13 @@ void rssebd_array::save_dist_matrix(const Eigen::MatrixXd& dist,
     fout.close();
 }
 
-void rssebd_array::load_dist_matrix(const std::string& dist_file, bool to_stdout)
+void sss_array::load_dist_matrix(const std::string& dist_file, bool to_stdout)
 {
     std::ifstream fin(dist_file, std::ios::binary);
 
     if(!fin)
     {
-	// throw std::runtime_error("Could not open the file: " + embed_file);
+	// throw std::runtime_error("Could not open the file: " + sketch_file);
 	std::cerr << "Error: could not open the file: "
 		  << dist_file << std::endl;
 	std::exit(1);
@@ -240,24 +240,24 @@ void rssebd_array::load_dist_matrix(const std::string& dist_file, bool to_stdout
 }
 
 
-void rssebd_array::free(std::vector<int*>& embeds)
+void sss_array::free(std::vector<int*>& sketches)
 {
-    for(int* x : embeds)
+    for(int* x : sketches)
     {
 	delete[] x;
     }
-    embeds.clear();
+    sketches.clear();
 }
 
-void rssebd_array::show_dist_matrix(const Eigen::MatrixXd& dist)
+void sss_array::show_dist_matrix(const Eigen::MatrixXd& dist)
 {
     Eigen::IOFormat fmt(Eigen::StreamPrecision, Eigen::DontAlignCols, "\t", "\n");
 
     std::cout << dist.format(fmt) << std::endl;
 }
 
-void rssebd_array::save_dist_matrix_to_npy(const Eigen::MatrixXd& dist,
-					   const std::string& dist_file)
+void sss_array::save_dist_matrix_to_npy(const Eigen::MatrixXd& dist,
+					const std::string& dist_file)
 {
     std::ofstream fout(dist_file, std::ios::binary);
     if(!fout)

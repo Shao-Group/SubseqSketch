@@ -1,6 +1,6 @@
 /*
-  Part of SubseqEmbed.
-  Representing a list of subsequences to be used for embedding.
+  Part of SubseqSketch.
+  Representing a list of subsequences to be used for sketching.
   By Ke @ Penn State
 */
 
