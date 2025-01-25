@@ -1,6 +1,6 @@
 # Overview
 
-SubseqSketch creates sketchings of sequences using random subsequences.
+SubseqSketch creates sketches of sequences using random subsequences.
 It exhibits strong correlation with the edit distance and outperforms other sketching methods in tasks such as nearest neighbor search and phylogeny reconstruction.
 See [SubseqSketch-test](https://github.com/Shao-Group/SubseqSketch-test.git) for scripts that can be used to reproduce the evaluation results in the SubseqSketch paper.
 
@@ -48,7 +48,7 @@ build/SubseqSketch [SUBCOMMAND] --help
    ```
    build/SubseqSketch show input1-vs-input2.sss-dist | less
    ```
-   or transformed into a npy format for downstream tasks using `numpy`:
+   or transformed into npy format for downstream tasks using `numpy`:
    ```
    build/SubseqSketch show -p input1-vs-input2.sss-dist
    ```
