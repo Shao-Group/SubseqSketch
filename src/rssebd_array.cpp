@@ -345,3 +345,29 @@ void rssebd_array::pairwise_max_likelyhood_dist(const Eigen::MatrixXd& embed1,
     
     save_dist_matrix(result.matrix(), dist_file);
 }
+
+void rssebd_array::pairwise_tanimoto_dist(const Eigen::MatrixXd& embed1,
+					  const Eigen::MatrixXd& embed2,
+					  const std::string& dist_file)
+{
+    const int n = embed1.rows();
+    const int m = embed2.rows();
+    
+    Eigen::MatrixXd dot = embed1 * embed2.transpose();
+    Eigen::VectorXd norm1 = embed1.rowwise().squaredNorm();
+    Eigen::VectorXd norm2 = embed2.rowwise().squaredNorm();
+
+    Eigen::MatrixXd denominator = norm1.replicate(1, m)
+	+ norm2.transpose().replicate(n, 1) - dot;
+
+    double zero_threshold = 1e-8;
+    // avoid division by zero
+    denominator.array() += zero_threshold;
+
+    dot.array() /= denominator.array();
+    dot = 1.0 - dot.array();
+
+    dot = (dot.array() < zero-threshold).select(0.0f, dot);
+    
+    save_dist_matrix(dot.matrix(), dist_file);
+}
