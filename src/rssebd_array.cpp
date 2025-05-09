@@ -367,7 +367,7 @@ void rssebd_array::pairwise_tanimoto_dist(const Eigen::MatrixXd& embed1,
     dot.array() /= denominator.array();
     dot = 1.0 - dot.array();
 
-    dot = (dot.array() < zero-threshold).select(0.0f, dot);
+    dot = (dot.array() < zero_threshold).select(0.0f, dot);
     
     save_dist_matrix(dot.matrix(), dist_file);
 }

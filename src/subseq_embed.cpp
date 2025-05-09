@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include "fasta_reader.hpp"
 #include "subsequences.hpp"
@@ -29,7 +30,7 @@ void compute_embeddings(const std::string& subseq_file,
 
 void compute_distances(const std::string& embed_file1,
 		       const std::string& embed_file2,
-		       bool use_cos_dist,
+		       const int distance_choice,
 		       const std::string& dist_file);
 
 void show_embeddings(const std::string& embed_file);
@@ -101,8 +102,13 @@ int main(int argc, char** argv)
 	->required()
 	->check(CLI::ExistingFile);
 
-    bool use_cos_dist = true;
-    dist->add_flag("-c,--cos-distance,!-m,!--max-likelyhood", use_cos_dist, "Compute the cosine distance (if -c) or the maximum likelyhood estimation of the mutation rate (if -m)");
+    std::unordered_map<std::string, int> distance_metrics = {
+	{"cosine", 0}, {"maxlikelyhood", 1}, {"tanimoto", 2}
+    };
+    int distance_choice = 0;
+    dist->add_option("-m,--metric", distance_choice, "Distance metric to be used, valid options are cosine, maxlikelyhood, and tanimoto")
+	->default_val("0")
+	->transform(CLI::CheckedTransformer(distance_metrics, CLI::ignore_case));
 
     std::string dist_file;
     dist->add_option("-o,--output", dist_file, "File for storing the embedding distances")
@@ -146,7 +152,7 @@ int main(int argc, char** argv)
     }
     else if(app.got_subcommand(dist))
     {
-	compute_distances(embed_file1, embed_file2, use_cos_dist, dist_file);
+	compute_distances(embed_file1, embed_file2, distance_choice, dist_file);
     }
     else if(app.got_subcommand(info))
     {
@@ -319,7 +325,7 @@ void compute_embeddings(const std::string& subseq_file,
 
 void compute_distances(const std::string& embed_file1,
 		       const std::string& embed_file2,
-		       bool use_cos_dist,
+		       const int distance_choice,
 		       const std::string& dist_file)
 {
     std::cout << "embed_file1: " << embed_file1 << std::endl;
@@ -331,11 +337,11 @@ void compute_distances(const std::string& embed_file1,
     int embed_dim1;
     int num_tokens1;
     Eigen::MatrixXd embeds1;
-    if(use_cos_dist)
+    if(distance_choice == 0) //cosine
     {
 	embeds1 = rssebd_array::load_all(num_embeds1, embed_dim1, num_tokens1, true, false, embed_file1);
     }
-    else
+    else // max likelyhood, tanimoto
     {
 	embeds1 = rssebd_array::load_all(num_embeds1, embed_dim1, num_tokens1, false, false, embed_file1);
     }
@@ -347,7 +353,7 @@ void compute_distances(const std::string& embed_file1,
     int embed_dim2;
     int num_tokens2;
     Eigen::MatrixXd embeds2;
-    if(use_cos_dist)
+    if(distance_choice == 0)
     {
 	embeds2 = rssebd_array::load_all(num_embeds2, embed_dim2, num_tokens2, true, true, embed_file2);
     }
@@ -373,13 +379,17 @@ void compute_distances(const std::string& embed_file1,
 
     std::cout << "Computing pairwise embedding distances..." << std::endl;
     // rssebd_array::pairwise_cos_dist(embeds1, embeds2, embed_dim1, dist_file);
-    if(use_cos_dist)
+    if(distance_choice == 0)
     {
 	rssebd_array::pairwise_cos_dist(embeds1, embeds2, dist_file);
     }
-    else
+    else if(distance_choice == 1)
     {
 	rssebd_array::pairwise_max_likelyhood_dist(embeds1, embeds2, dist_file);
+    }
+    else if(distance_choice == 2)
+    {
+	rssebd_array::pairwise_tanimoto_dist(embeds1, embeds2, dist_file);
     }
     std::cout << num_embeds1 << "x" << num_embeds2
 	      << " embedding distance matrix wrote to file: "
