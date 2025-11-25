@@ -5,11 +5,11 @@ target_link_libraries(subsequences PUBLIC fasta_reader)
 
 # add_library(tokenized_sequence tokenized_sequence.cpp)
 
-add_library(rssebd_array rssebd_array.cpp)
-target_link_libraries(rssebd_array PUBLIC OpenMP::OpenMP_CXX)
+add_library(sss_array sss_array.cpp)
+target_link_libraries(sss_array PUBLIC OpenMP::OpenMP_CXX)
 
-add_executable(SubseqEmbed subseq_embed.cpp)
-target_link_libraries(SubseqEmbed PRIVATE subsequences)
-# target_link_libraries(SubseqEmbed PRIVATE tokenized_sequence)
-target_link_libraries(SubseqEmbed PRIVATE rssebd_array)
+add_executable(SubseqSketch subseq_sketch.cpp)
+target_link_libraries(SubseqSketch PRIVATE subsequences)
+# target_link_libraries(SubseqSketch PRIVATE tokenized_sequence)
+target_link_libraries(SubseqSketch PRIVATE sss_array)
 

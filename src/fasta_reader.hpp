@@ -1,5 +1,5 @@
 /*
-  Part of SubseqEmbed.
+  Part of SubseqSketch.
   A naive fasta reader.
   By Ke @ Penn State
 */
